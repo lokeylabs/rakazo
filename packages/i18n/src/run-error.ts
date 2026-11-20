@@ -48,6 +48,30 @@ export const translateRunError: RunErrorTranslator = (message, values) => {
         message: "The model provider returned an error.",
         values,
       });
+    case "Something went wrong. Try again in a moment.":
+      return i18n._({
+        id: "Something went wrong. Try again in a moment.",
+        message: "Something went wrong. Try again in a moment.",
+        values,
+      });
+    case "This message was blocked. Try rephrasing your request.":
+      return i18n._({
+        id: "This message was blocked. Try rephrasing your request.",
+        message: "This message was blocked. Try rephrasing your request.",
+        values,
+      });
+    case "The response could not be completed. Try again.":
+      return i18n._({
+        id: "The response could not be completed. Try again.",
+        message: "The response could not be completed. Try again.",
+        values,
+      });
+    case "This conversation is too long. Start a new chat or send a shorter message.":
+      return i18n._({
+        id: "This conversation is too long. Start a new chat or send a shorter message.",
+        message: "This conversation is too long. Start a new chat or send a shorter message.",
+        values,
+      });
     case "{provider} is rate limiting requests. Try again shortly.":
       return i18n._({
         id: "{provider} is rate limiting requests. Try again shortly.",

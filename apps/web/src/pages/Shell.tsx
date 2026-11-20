@@ -526,6 +526,7 @@ function SpaceShell() {
     refreshThread,
     setPanel,
     messageProviders: messagingProviders,
+    modelLockEnabled: bootstrapMe?.modelLockEnabled === true,
   });
   // Until this visit's read lands, a bot shows the routines and skills it had last time.
   const cachedRoutines =
@@ -1182,6 +1183,7 @@ function SpaceShell() {
               runErrorId={composer.displayedRunErrorId}
               onRunErrorPresented={composer.handleRunErrorPresented}
               onDismissError={composer.dismissComposerError}
+              modelLockEnabled={bootstrapMe?.modelLockEnabled === true}
               sending={sending}
               fileInputRef={composer.fileInputRef}
               onAttachmentPick={composer.onAttachmentPick}
@@ -1313,6 +1315,7 @@ function SpaceShell() {
         memoryProviderConfigured={memoryProviderConfig != null}
         setAgentSkills={setAgentSkills}
         onClearBot={(bot) => dialogs.setClearTarget({ kind: "bot", chat: bot })}
+        modelLockEnabled={bootstrapMe?.modelLockEnabled === true}
       />
 
       <Suspense fallback={null}>

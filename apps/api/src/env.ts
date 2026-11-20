@@ -27,6 +27,7 @@ import {
   resolveEncryptionKey,
   resolveScreenProxySecret,
   resolveSupervisorToken,
+  modelLockEnabled,
   uploadSizeFromEnv,
 } from "@rakazo/core";
 import { getLogger, monitoringPseudonymSecret } from "@rakazo/logging";
@@ -74,6 +75,8 @@ export interface AppEnv {
   userDevicesEnabled: boolean;
   /** COMPUTER_SETTINGS_ENABLED=true lets Settings choose where computers run. Default off. */
   computerSettingsEnabled: boolean;
+  /** RAKAZO_MODEL_LOCK=1 fixes the workspace model; model pickers stay hidden. Default off. */
+  modelLockEnabled: boolean;
   /** Operator menu links that frame a same-origin page (RAKAZO_NAV_LINKS). */
   navLinks?: NavLink[];
   /** Verified accounts that review plugin submissions, add stdio MCP servers, and grant access
@@ -273,6 +276,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     ticketBoardEnabled: source.TICKET_BOARD_ENABLED === "true",
     userDevicesEnabled: source.USER_DEVICES_ENABLED !== "false",
     computerSettingsEnabled: source.COMPUTER_SETTINGS_ENABLED === "true",
+    modelLockEnabled: modelLockEnabled(source),
     navLinks: parseNavLinks(source.RAKAZO_NAV_LINKS),
     adminEmails: list(source.RAKAZO_ADMIN_EMAILS).map((email) => email.toLowerCase()),
     ...phoneCallSettings(source),

@@ -199,11 +199,11 @@ export function parseModelFallbackFailure(
 /**
  * Fixed failure strings from the model runtime's stop-reason mapping (including a stop reason
  * it does not know yet, such as Gemini's MALFORMED_RESPONSE, and a refusal), from Anthropic's
- * policy blocks, and from provider APIs that reject a model's malformed tool call or empty
- * reply. Never matched against model prose.
+ * policy blocks, from a gateway passing on a bare safety finish reason, and from provider APIs
+ * that reject a model's malformed tool call or empty reply. Never matched against model prose.
  */
 const MODEL_OUTPUT_FAILURE =
-  /^(?:Provider (?:finish_reason|stopped with): |Unhandled stop reason: |Provider returned an empty response\b|Failed to parse tool call arguments as JSON\b|[Tt]ool call validation failed\b|Parsing failed\. The model generated output that could not be parsed\b|Upstream request failed: \[api_error\] Upstream response was not valid JSON\b|The model refused to complete the request\b|(?:Codex error: )?This content was flagged for possible cybersecurity risk\b|Cyber safeguards flagged this message\b|This request (?:triggered restrictions on [^\n.]{1,80} and )?was blocked (?:under|as it seems to violate) Anthropic's |(?:[\w.]+Error: )?unexpected tokens remaining in message header:)/;
+  /^(?:Provider (?:finish_reason|stopped with): |Unhandled stop reason: |Provider returned an empty response\b|Failed to parse tool call arguments as JSON\b|[Tt]ool call validation failed\b|Parsing failed\. The model generated output that could not be parsed\b|Upstream request failed: \[api_error\] Upstream response was not valid JSON\b|The model refused to complete the request\b|(?:Codex error: )?This content was flagged for possible cybersecurity risk\b|Cyber safeguards flagged this message\b|This request triggered cyber-related safeguards\b|(?:SAFETY|BLOCKLIST|PROHIBITED_CONTENT|SPII|RECITATION|IMAGE_(?:SAFETY|PROHIBITED_CONTENT|RECITATION))$|This request (?:triggered restrictions on [^\n.]{1,80} and )?was blocked (?:under|as it seems to violate) Anthropic's |(?:[\w.]+Error: )?unexpected tokens remaining in message header:)/;
 
 /** The provider cut off the model's reply, such as a half-written tool call, at its output limit. */
 const MODEL_OUTPUT_LIMIT_REACHED = /\bcut ?off by max_(?:completion_|output_)?tokens\b/i;
@@ -218,9 +218,53 @@ const MALFORMED_KEY_HEADER =
 
 /** The provider says the selected model is gone or cannot serve this kind of request. */
 const MODEL_UNAVAILABLE =
-  /^(?:unsupported|unknown|unrecognized)[ _-]model\b(?![ :]+(?:parameters?|fields?|options?|settings?)\b)|\bmodel\b(?:(?!\.\s)[\s\S]){0,80}?\b(?:not found|does not exist|unavailable|not available|not supported|isn['\u2019]t supported|(?:is|has been) deprecated|does(?: not|n['\u2019]t) support|requires the use of|requires [\w -]{1,30}\bregions?|is not a chat model|only supports (?:the )?(?:\/|[\w ./-]{1,40}\b(?:endpoint|API)\b))|\bnot supported (?:with|by|for) (?:this|the) model\b|^feature 'tool calls' is not (?:currently )?supported\b|^Invalid inference request\. Check the model's supported parameters\b|\bDEGRADED function cannot be invoked\b/i;
+  /^(?:unsupported|unknown|unrecognized)[ _-]model\b(?![ :]+(?:parameters?|fields?|options?|settings?)\b)|\bmodel\b(?:(?!\.\s)[\s\S]){0,80}?\b(?:not found|does not exist|unavailable|not available|not supported|isn['\u2019]t supported|(?:is|has been) deprecated|does(?: not|n['\u2019]t) support|requires the use of|requires [\w -]{1,30}\bregions?|is hosted outside\b|is not a chat model|only supports (?:the )?(?:\/|[\w ./-]{1,40}\b(?:endpoint|API)\b))|\bnot supported (?:with|by|for) (?:this|the) model\b|^feature 'tool calls' is not (?:currently )?supported\b|^Invalid inference request\. Check the model's supported parameters\b|\bDEGRADED function cannot be invoked\b/i;
 
 export type RunErrorRecovery = "connection" | "model" | "plan";
+
+export type RunErrorPresentationOptions = {
+  /** Hides model-picker recovery actions and provider-specific model wording. */
+  modelLock?: boolean;
+};
+
+/** Applies deployment presentation rules after `normalizeRunError`. */
+export function presentRunError<T extends { summary: string; recovery?: RunErrorRecovery }>(
+  error: T,
+  options?: RunErrorPresentationOptions,
+): T {
+  if (!options?.modelLock) return error;
+  return {
+    ...error,
+    recovery: error.recovery === "plan" ? "plan" : undefined,
+  };
+}
+
+const CONTENT_POLICY_SIGNAL =
+  /content[_ -]?policy|responsible[_ -]?ai|data_inspection_failed|moderation|harmful|unsafe content|blocked.*(?:policy|safety|guidelines)|error_type['":\s]+content|provider_code['":\s]+(?:SAFETY|safety)/i;
+
+/** Provider or gateway refused the prompt or reply for safety, not a transient fault. */
+function isContentPolicyFailure(
+  trimmed: string,
+  message: string,
+  signals: string,
+  payload: Record<string, unknown>,
+  metadata: Record<string, unknown>,
+): boolean {
+  if (
+    MODEL_OUTPUT_FAILURE.test(trimmed) &&
+    /^(?:SAFETY|BLOCKLIST|PROHIBITED_CONTENT|SPII|RECITATION|IMAGE_(?:SAFETY|PROHIBITED_CONTENT|RECITATION))$/i.test(
+      trimmed,
+    )
+  ) {
+    return true;
+  }
+  if (payload.code === "data_inspection_failed" || metadata.error_type === "content_policy_violation") {
+    return true;
+  }
+  if (/\bOpenrouterException\b[\s\S]*\bSAFETY\b/i.test(trimmed)) return true;
+  if (/\blitellm\.[\w]+Error\b[\s\S]*\bSAFETY\b/i.test(trimmed)) return true;
+  return CONTENT_POLICY_SIGNAL.test(signals) || CONTENT_POLICY_SIGNAL.test(trimmed);
+}
 
 /**
  * Keep provider diagnostics available without exposing them in the visible summary. `recovery`
@@ -235,6 +279,7 @@ export function normalizeRunError(
   translate: RunErrorTranslator = english,
   locale = "en-US",
   now = Date.now(),
+  presentation?: RunErrorPresentationOptions,
 ): {
   summary: string;
   details: string;
@@ -270,6 +315,7 @@ export function normalizeRunError(
       translate,
       locale,
       now,
+      presentation,
     );
     const failed = fallback.backups.some((item) => item.status === "failed");
     const skipped = fallback.backups.some((item) => item.status === "skipped");
@@ -278,17 +324,21 @@ export function normalizeRunError(
         ? "{summary} Backup models failed or were unavailable for this request."
         : "{summary} Your backup models also failed."
       : "{summary} No backup model was usable for this request.";
-    return {
-      ...primary,
-      summary: translate(message, { summary: primary.summary }),
-      // One diagnostic line per model instead of the persisted JSON envelope.
-      details: [
-        fallback.primaryError,
-        ...fallback.backups.map((item) => `${item.provider} ${item.modelId}: ${item.reason}`),
-      ].join("\n"),
-    };
+    return presentRunError(
+      {
+        ...primary,
+        summary: translate(message, { summary: primary.summary }),
+        // One diagnostic line per model instead of the persisted JSON envelope.
+        details: [
+          fallback.primaryError,
+          ...fallback.backups.map((item) => `${item.provider} ${item.modelId}: ${item.reason}`),
+        ].join("\n"),
+      },
+      presentation,
+    );
   }
-  if (isComputerAllowanceUsed(trimmed)) return { summary: details, details, recovery: "plan" };
+  if (isComputerAllowanceUsed(trimmed))
+    return presentRunError({ summary: details, details, recovery: "plan" }, presentation);
   // Preserve only known recovery advice: provider diagnostics can also be plain text.
   if (APP_RUN_ERRORS.has(trimmed)) {
     return MODEL_OUTPUT_RUN_ERRORS.has(trimmed)
@@ -301,24 +351,33 @@ export function normalizeRunError(
     return { summary: translate("Something went wrong. Try again."), details };
   }
   if (trimmed === MODEL_OUTPUT_CUT_ERROR) {
-    return {
-      summary: translate(MODEL_OUTPUT_CUT_ERROR),
-      details,
-      recovery: "model",
-      kind: "output",
-    };
+    return presentRunError(
+      {
+        summary: translate(MODEL_OUTPUT_CUT_ERROR),
+        details,
+        kind: "output",
+      },
+      presentation,
+    );
   }
   if (
     trimmed === MODEL_CONTEXT_TOO_SMALL_ERROR ||
     trimmed === MODEL_REQUEST_LIMIT_ERROR ||
     trimmed === VERBATIM_TOOL_RESULT_TOO_LARGE_ERROR
   ) {
-    return {
-      summary: translate(trimmed),
-      details,
-      recovery: "model",
-      kind: "context",
-    };
+    return presentRunError(
+      {
+        summary: translate(
+          presentation?.modelLock
+            ? "This conversation is too long. Start a new chat or send a shorter message."
+            : trimmed,
+        ),
+        details,
+        recovery: presentation?.modelLock ? undefined : "model",
+        kind: "context",
+      },
+      presentation,
+    );
   }
   if (MALFORMED_KEY_HEADER.test(trimmed)) {
     return {
@@ -337,6 +396,7 @@ export function normalizeRunError(
     typeof payload.message === "string" ? asRecord(asRecord(parseJson(payload.message)).error) : {};
   if (Object.keys(wrapped).length) payload = wrapped;
   const message = typeof payload.message === "string" ? payload.message : body;
+  const metadata = asRecord(payload.metadata ?? record.metadata);
   const status =
     [prefix?.[1], prefix?.[2], record.status, record.code, payload.code, payload.httpCode]
       .map(Number)
@@ -347,18 +407,25 @@ export function normalizeRunError(
   if (
     trimmed === MODEL_OUTPUT_LIMIT_ERROR ||
     MODEL_OUTPUT_FAILURE.test(trimmed) ||
-    MODEL_OUTPUT_FAILURE.test(message)
+    MODEL_OUTPUT_FAILURE.test(message) ||
+    payload.code === "data_inspection_failed"
   ) {
-    return {
-      summary: translate("The model returned an unusable response. Try again."),
-      details,
-      recovery: "model",
-      kind: "output",
-      ...(status !== undefined ? { status } : {}),
-      providerMessage: message,
-    };
+    const blocked = isContentPolicyFailure(trimmed, message, "", payload, metadata);
+    return presentRunError(
+      {
+        summary: translate(
+          blocked
+            ? "This message was blocked. Try rephrasing your request."
+            : "The response could not be completed. Try again.",
+        ),
+        details,
+        kind: "output",
+        ...(status !== undefined ? { status } : {}),
+        providerMessage: message,
+      },
+      presentation,
+    );
   }
-  const metadata = asRecord(payload.metadata ?? record.metadata);
   const signals = [
     message,
     JSON.stringify(metadata),
@@ -379,7 +446,19 @@ export function normalizeRunError(
   let kind: RunErrorKind | undefined;
   let period: "none" | "daily" | "weekly" | "monthly" | undefined;
   let recovery: RunErrorRecovery | undefined;
-  let summary = translate("The model provider returned an error.");
+  let summary = translate("Something went wrong. Try again in a moment.");
+  if (isContentPolicyFailure(trimmed, message, signals, payload, metadata)) {
+    return presentRunError(
+      {
+        summary: translate("This message was blocked. Try rephrasing your request."),
+        details,
+        kind: "output",
+        ...(status !== undefined ? { status } : {}),
+        providerMessage: message,
+      },
+      presentation,
+    );
+  }
   const financialQuota =
     /insufficient[_ ](?:quota|balance)|credits?|funds|spend|budget|billing|openrouter_key_limit/i.test(
       signals,
@@ -543,20 +622,22 @@ export function normalizeRunError(
   ) {
     summary = translate("{provider} took too long to respond. Try again.", { provider });
   } else if (MODEL_OUTPUT_LIMIT_REACHED.test(message)) {
-    recovery = "model";
     kind = "output";
-    summary = translate("The model returned an unusable response. Try again.");
+    summary = translate("The response could not be completed. Try again.");
   }
-  return {
-    summary,
-    details,
-    ...(kind ? { kind } : {}),
-    ...(period ? { period } : {}),
-    ...(recovery ? { recovery } : {}),
-    ...(resetAt ? { resetAt } : {}),
-    ...(status !== undefined ? { status } : {}),
-    providerMessage: message,
-  };
+  return presentRunError(
+    {
+      summary,
+      details,
+      ...(kind ? { kind } : {}),
+      ...(period ? { period } : {}),
+      ...(recovery ? { recovery } : {}),
+      ...(resetAt ? { resetAt } : {}),
+      ...(status !== undefined ? { status } : {}),
+      providerMessage: message,
+    },
+    presentation,
+  );
 }
 
 function parseJson(text: string): unknown {

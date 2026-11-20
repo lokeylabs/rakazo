@@ -421,7 +421,7 @@ export function botsRoutes(ctx: RouterContext) {
           provider:
             input.modelProvider !== undefined ? input.modelProvider : existing.modelProvider,
           model: input.modelId !== undefined ? input.modelId : existing.modelId,
-          thinkingLevel: input.thinkingLevel,
+          thinkingLevel: deps.env.modelLockEnabled ? undefined : input.thinkingLevel,
           current: { provider: existing.modelProvider, model: existing.modelId },
         });
         if (!modelChange.ok) throw new ORPCError("BAD_REQUEST", { message: modelChange.error });
@@ -463,10 +463,12 @@ export function botsRoutes(ctx: RouterContext) {
             sectionId: input.sectionId,
             voiceId: input.voiceId,
             autoSpeak: input.autoSpeak,
-            ...(input.modelProvider !== undefined
+            ...(!deps.env.modelLockEnabled && input.modelProvider !== undefined
               ? { modelProvider: input.modelProvider, modelId: input.modelId ?? null }
               : {}),
-            ...(input.thinkingLevel !== undefined ? { thinkingLevel } : {}),
+            ...(!deps.env.modelLockEnabled && input.thinkingLevel !== undefined
+              ? { thinkingLevel }
+              : {}),
             ...(input.teamChatAmbientEnabled !== undefined
               ? { teamChatAmbientEnabled: input.teamChatAmbientEnabled }
               : {}),

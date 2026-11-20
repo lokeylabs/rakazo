@@ -69,7 +69,7 @@ export function ThreadErrorNotice({
           ) : null}
           {action ? <RunErrorAction label={action.label} onPress={action.onPress} /> : null}
           {summary && onDetails ? (
-            <RunErrorTextAction label={t`Details`} onPress={onDetails} />
+            <RunErrorTextAction label={t`Technical details`} onPress={onDetails} />
           ) : null}
         </View>
       ) : null}

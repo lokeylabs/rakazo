@@ -221,6 +221,7 @@ export async function prepareOwnBotSettings(
   }
   const model = typeof args.model === "string" ? args.model.trim() : "";
   const level = typeof args.thinkingLevel === "string" ? args.thinkingLevel.trim() : "";
+  if (deps.modelChange.modelLock && (model || level)) return { data };
   if (!model && !level) return { data };
   // A model without catalog levels skips the shared check, so the level must be a real one first.
   if (level && !ThinkingLevelSchema.safeParse(level).success)

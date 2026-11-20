@@ -582,6 +582,8 @@ export async function findConnectedModelCredential(
 
 export type BotModelChangeDeps = {
   hostedProvider?: string;
+  /** When set, bot and routine model changes keep the workspace default. */
+  modelLock?: boolean;
   prisma: PrismaClient;
   secretStore: Pick<SecretStore, "load">;
   codexCatalog?: CodexLiveCatalog;
@@ -617,6 +619,14 @@ export async function validateBotModelChange(
   const scope = { userId: input.userId, spaceId: input.spaceId };
   const { provider, model } = input;
   const changing = provider !== input.current?.provider || model !== input.current?.model;
+  if (deps.modelLock && (changing || input.thinkingLevel !== undefined)) {
+    return {
+      ok: true,
+      provider: input.current?.provider ?? null,
+      model: input.current?.model ?? null,
+      thinkingLevel: null,
+    };
+  }
   if (changing && provider && model) {
     const hosted =
       deps.hostedProvider === provider &&

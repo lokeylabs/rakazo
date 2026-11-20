@@ -122,7 +122,7 @@ function RunRow({ run }: { run: RoutineRun }) {
         <div className="-mt-1 pb-2 text-destructive">
           <p>{normalizeRunError(run.error, translateRunError, locale).summary}</p>
           <details key={run.error} className="mt-1">
-            <summary className="w-fit cursor-pointer">{t`Details`}</summary>
+            <summary className="w-fit cursor-pointer text-muted-foreground">{t`Technical details`}</summary>
             <pre className="mt-2 whitespace-pre-wrap break-words text-label">{run.error}</pre>
           </details>
         </div>

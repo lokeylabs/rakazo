@@ -116,6 +116,7 @@ export function createRouterContext(deps: RouterDeps) {
     secretStore: deps.secrets,
     codexCatalog,
     refreshExpiredCredential,
+    modelLock: deps.env.modelLockEnabled === true,
     hostedProvider: deps.billing?.modelCreditsEnabled ? deps.env.defaultProvider : undefined,
     defaultModel: async () => {
       const me = await meDto(deps, actor);

@@ -938,6 +938,9 @@ export async function setChildBotModel(
   const child = await resolveBot(deps.prisma, run, { bot_id: canonical.botId });
   if ("error" in child) return { error: child.error };
   if (!child.thread) return { error: NOT_FOUND };
+  if (deps.modelChange.modelLock) {
+    return { error: "This workspace uses a fixed model." };
+  }
   const previous = asRecord(canonical.previous);
   if (
     (previous?.provider ?? null) !== child.modelProvider ||

@@ -40,8 +40,10 @@ export function RoutineEditor({
   onEnsureWebhook,
   onRevealWebhook,
   onHideWebhook,
+  modelLockEnabled = false,
 }: {
   bot: { id: string; name: string };
+  modelLockEnabled?: boolean;
   draft: RoutineDraftState;
   onChange: (next: RoutineDraftState) => void;
   editing: Routine | null;
@@ -175,7 +177,12 @@ export function RoutineEditor({
         <div className="flex items-center gap-2">
           <Trans>When to run</Trans>
           <span className="text-label text-muted-foreground/70">{timezone}</span>
-          <RoutineModelSettings draft={draft} onChange={onChange} fieldId={fieldId} />
+          <RoutineModelSettings
+            draft={draft}
+            onChange={onChange}
+            fieldId={fieldId}
+            modelLockEnabled={modelLockEnabled}
+          />
         </div>
 
         <div className="mt-2 space-y-2">

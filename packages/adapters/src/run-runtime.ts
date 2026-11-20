@@ -6,7 +6,7 @@ import type {
   MessagingSurface,
   SecretStore,
 } from "@rakazo/adapter-kit";
-import { phoneCallSettings, resolveEncryptionKey, uploadSizeFromEnv } from "@rakazo/core";
+import { modelLockEnabled, phoneCallSettings, resolveEncryptionKey, uploadSizeFromEnv } from "@rakazo/core";
 import type { PrismaClient, ThreadEvents } from "@rakazo/db";
 import { createSecurityEventPruner, securityEventRetentionDays } from "@rakazo/db";
 import { auditLogConfig, createAuditLogReconciler } from "./audit-forwarding.js";
@@ -62,6 +62,7 @@ export interface RunRuntimeEnv extends PipedreamEnvironmentValues {
   maxUploadSizeBytes: number;
   /** Only names a bot's address to it; the API receives the mail. */
   inboundEmailDomain: string | undefined;
+  modelLockEnabled: boolean;
 }
 
 /** The worker's reading of the run runtime settings, values and defaults as the worker has them. */
@@ -90,6 +91,7 @@ export function runRuntimeEnvFromProcess(source: NodeJS.ProcessEnv): RunRuntimeE
     ...phoneCallSettings(source),
     maxUploadSizeBytes: uploadSizeFromEnv(source),
     inboundEmailDomain: source.INBOUND_EMAIL_DOMAIN?.trim().toLowerCase() || undefined,
+    modelLockEnabled: modelLockEnabled(source),
   };
 }
 
@@ -172,7 +174,8 @@ type SetByRunRuntime =
   | "inboundEmailDomain"
   | "maxUploadSizeBytes"
   | "messaging"
-  | "web";
+  | "web"
+  | "modelLockEnabled";
 
 /** The run executor and the background job handlers that drive it. */
 export function createRunRuntime(
@@ -209,6 +212,7 @@ export function createRunRuntime(
     inboundEmailDomain: env.inboundEmailDomain,
     messaging: messaging ? createMessagingContextLoader(deps.prisma) : undefined,
     web: createWebProvider(),
+    modelLockEnabled: env.modelLockEnabled,
   });
   const jobHandlers = createBackgroundJobHandlers({
     executor,

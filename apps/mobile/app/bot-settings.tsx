@@ -607,6 +607,7 @@ export default function BotSettingsScreen() {
                 scrollRef.current?.scrollTo({ y: modelY.current, animated: true });
             }}
           >
+            {me?.modelLockEnabled ? null : (
             <SettingsGroup label={t`Model`} footer={modelMetaError ?? undefined}>
               <MenuPicker
                 choices={modelChoices}
@@ -633,6 +634,7 @@ export default function BotSettingsScreen() {
                 />
               ) : null}
             </SettingsGroup>
+            )}
             <SettingsGroup label={t`Computer`}>
               <View style={styles.cardContent}>
                 <ComputerModePicker plain value={computerMode} onChange={setComputerMode} />

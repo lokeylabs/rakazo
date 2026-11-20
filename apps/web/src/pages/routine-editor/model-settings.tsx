@@ -24,10 +24,12 @@ export function RoutineModelSettings({
   draft,
   onChange,
   fieldId,
+  modelLockEnabled = false,
 }: {
   draft: RoutineDraftState;
   onChange: (next: RoutineDraftState) => void;
   fieldId: string;
+  modelLockEnabled?: boolean;
 }) {
   const { t } = useLingui();
   const [credentials, setCredentials] = useState<ModelCredential[]>([]);
@@ -58,6 +60,8 @@ export function RoutineModelSettings({
     []
   ).filter((level) => level !== "off");
   const defaultThinkingLevel = selectedCredential?.thinkingLevel ?? "medium";
+
+  if (modelLockEnabled) return null;
 
   return (
     <Popover>

@@ -78,6 +78,7 @@ export function BotSettings({
   onClear,
   focusModel = 0,
   onOpenConnections,
+  modelLockEnabled = false,
 }: {
   bot: Bot;
   tab?: BotPanelTab;
@@ -111,6 +112,7 @@ export function BotSettings({
   }) => Promise<void>;
   onExport: () => Promise<void>;
   onClear: () => void;
+  modelLockEnabled?: boolean;
 }) {
   const { t } = useLingui();
   const ids = useId();
@@ -572,21 +574,23 @@ export function BotSettings({
             </Suspense>
           </ErrorBoundary>
           <div className="space-y-6 pt-6">
-            <ModelSection
-              ids={ids}
-              containerRef={modelRef}
-              onOpenConnections={onOpenConnections}
-              choices={modelChoices}
-              value={selectedModelKey}
-              onModelChange={(key) => {
-                setModelKey(key);
-                setThinkingLevel("");
-              }}
-              thinkingOptions={thinkingOptions}
-              thinkingLevel={thinkingLevel}
-              defaultThinkingLevel={defaultThinkingLevel}
-              onThinkingLevelChange={setThinkingLevel}
-            />
+            {modelLockEnabled ? null : (
+              <ModelSection
+                ids={ids}
+                containerRef={modelRef}
+                onOpenConnections={onOpenConnections}
+                choices={modelChoices}
+                value={selectedModelKey}
+                onModelChange={(key) => {
+                  setModelKey(key);
+                  setThinkingLevel("");
+                }}
+                thinkingOptions={thinkingOptions}
+                thinkingLevel={thinkingLevel}
+                defaultThinkingLevel={defaultThinkingLevel}
+                onThinkingLevelChange={setThinkingLevel}
+              />
+            )}
             <ComputerGroup
               computerMode={computerMode}
               onComputerModeChange={setComputerMode}

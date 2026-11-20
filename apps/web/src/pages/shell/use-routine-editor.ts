@@ -29,11 +29,13 @@ export function useRoutineEditor({
   refreshThread,
   setPanel,
   messageProviders,
+  modelLockEnabled = false,
 }: {
   rpc: ReturnType<typeof createSpaceRpc>;
   active: Bot | undefined;
   activeBotId: RefObject<string | undefined>;
   timezone: string | null | undefined;
+  modelLockEnabled?: boolean;
   messageProviders: string[];
   setBots: Dispatch<SetStateAction<Bot[]>>;
   refreshThread: (botId: string) => Promise<ThreadSnapshot>;
@@ -150,6 +152,7 @@ export function useRoutineEditor({
             ? `${window.location.origin}/api/v1/bots/${active.id}/github`
             : `/api/v1/bots/${active.id}/github`,
         messageProviders,
+        modelLockEnabled,
         saving: savingRoutine,
         running: runningRoutine,
         error: routineError,

@@ -1,12 +1,12 @@
 import { i18n } from "@lingui/core";
 import { useLingui } from "@lingui/react/macro";
 import { computerHoursOut } from "@rakazo/contracts";
-import { isModelRequiredSendError, normalizeRunError } from "@rakazo/core";
+import { isModelRequiredSendError, normalizeRunError, presentRunError } from "@rakazo/core";
 import { translateRunError } from "@rakazo/i18n/run-error";
 import { Button } from "@rakazo/ui-web";
 import { FileIcon, X } from "lucide-react";
 import type { RefObject } from "react";
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useMemo, useRef } from "react";
 import { useBilling } from "../../components/SubscriptionGate";
 
 export function ComposerError({
@@ -20,6 +20,7 @@ export function ComposerError({
   onOpenConnections,
   onOpenBilling,
   onDismissError,
+  modelLockEnabled = false,
   textareaRef,
 }: {
   sendError: string | null;
@@ -33,6 +34,7 @@ export function ComposerError({
   onOpenConnections: () => void;
   onOpenBilling: () => void;
   onDismissError: () => void;
+  modelLockEnabled?: boolean;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
 }) {
   const { t } = useLingui();
@@ -116,9 +118,18 @@ export function ComposerError({
     }
     return cleanup;
   }, [onRunErrorPresented, runError, runErrorId]);
-  const normalizedRunError = runError
-    ? normalizeRunError(runError, translateRunError, i18n.locale || "en")
-    : null;
+  const normalizedRunError = useMemo(
+    () =>
+      runError
+        ? presentRunError(
+            normalizeRunError(runError, translateRunError, i18n.locale || "en", Date.now(), {
+              modelLock: modelLockEnabled,
+            }),
+            { modelLock: modelLockEnabled },
+          )
+        : null,
+    [runError, modelLockEnabled, i18n.locale],
+  );
   // The one action that fixes the failure; a transient one already says to try again.
   const recovery = sendError ? undefined : normalizedRunError?.recovery;
   const hoursOut = recovery === "plan" && billing ? computerHoursOut(billing) : null;
@@ -130,8 +141,19 @@ export function ComposerError({
         : hoursOut === "plan"
           ? t`This month's computer hours are used up.`
           : null;
-  const recoveryAction =
-    recovery === "model"
+  const recoveryAction = modelLockEnabled
+    ? hoursOut && billing?.canManage
+      ? {
+          label:
+            hoursOut === "trial"
+              ? t`Start plan now`
+              : hoursOut === "cancelled_trial"
+                ? t`Renew plan`
+                : t`Upgrade`,
+          onClick: onOpenBilling,
+        }
+      : null
+    : recovery === "model"
       ? { label: t`Choose a model`, onClick: onOpenModels }
       : recovery === "connection"
         ? {
@@ -206,7 +228,7 @@ export function ComposerError({
         ) : null}
         {!sendError && runError ? (
           <details key={runError} className="mt-1">
-            <summary className="w-fit cursor-pointer">{t`Details`}</summary>
+            <summary className="w-fit cursor-pointer text-muted-foreground">{t`Technical details`}</summary>
             <pre className="mt-2 whitespace-pre-wrap break-words text-label">
               {normalizedRunError?.details}
             </pre>

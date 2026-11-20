@@ -90,8 +90,8 @@ export async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     paymentWalletProvider: deps.paymentWallet
       ? { id: deps.paymentWallet.describe().id, name: deps.paymentWallet.displayName }
       : null,
+    modelLockEnabled: deps.env.modelLockEnabled === true,
   };
-}
 
 function computerHostFor(
   stored: string | null | undefined,

@@ -9,7 +9,11 @@ import { computerHoursOutCopy, runErrorActionLabel } from "../../lib/run-error-p
 import { useRunError } from "../run-error-sheet";
 
 /** The chat's failed run: its error, the recovery action, and whether its details are open. */
-export function useThreadRunError(run: MobileSnapshot["run"] | undefined, botId?: string) {
+export function useThreadRunError(
+  run: MobileSnapshot["run"] | undefined,
+  botId?: string,
+  modelLockEnabled = false,
+) {
   const router = useRouter();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const runError = run?.status === "failed" ? (run.error ?? null) : null;
@@ -37,7 +41,7 @@ export function useThreadRunError(run: MobileSnapshot["run"] | undefined, botId?
     ? billing?.canManage
       ? (hoursOut?.action ?? null)
       : null
-    : normalizedRunError
+    : normalizedRunError && !modelLockEnabled
       ? runErrorActionLabel(normalizedRunError)
       : null;
   const runBotId = run?.botId ?? botId;

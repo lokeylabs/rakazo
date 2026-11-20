@@ -92,6 +92,10 @@ describe("transient model errors", () => {
       "You've reached your monthly usage limit; retry after 1 second.",
     ].map((message): [string, unknown] => [message, { status: 429, message }]),
     ["invalid key", { status: 401, message: "invalid_api_key: Incorrect API key provided" }],
+    [
+      "openrouter safety",
+      'litellm.APIError: OpenrouterException - Message: SAFETY, Metadata: {"error_type": "content_policy_violation"}',
+    ],
     ["forbidden", "403 Forbidden"],
     ["context overflow", "context_length_exceeded: maximum context length is 128000 tokens"],
     ["bad request", { status: 400, message: "Unsupported parameter: temperature" }],

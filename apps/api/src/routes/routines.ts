@@ -111,9 +111,16 @@ export function routinesRoutes(ctx: RouterContext) {
         if (input.emailSenders && input.emailSenders !== existing.emailSenders) {
           await assertEmailTrigger(deps.prisma, deps.env.inboundEmailDomain, bot.id);
         }
-        const modelProvider =
-          input.modelProvider === undefined ? existing.modelProvider : input.modelProvider;
-        const modelId = input.modelId === undefined ? existing.modelId : input.modelId;
+        const modelProvider = deps.env.modelLockEnabled
+          ? existing.modelProvider
+          : input.modelProvider === undefined
+            ? existing.modelProvider
+            : input.modelProvider;
+        const modelId = deps.env.modelLockEnabled
+          ? existing.modelId
+          : input.modelId === undefined
+            ? existing.modelId
+            : input.modelId;
         const hasModel = Boolean(modelProvider && modelId);
         const modelChanged =
           canonicalPiProviderId(modelProvider ?? "") !==
@@ -131,13 +138,15 @@ export function routinesRoutes(ctx: RouterContext) {
           throw new ORPCError("BAD_REQUEST", { message: "Pick a model for this routine first" });
         }
         // A thinking level belongs to a model, so changing the model resets it.
-        const thinkingLevel = !hasModel
-          ? null
-          : input.thinkingLevel === undefined
-            ? modelChanged
-              ? null
-              : existing.thinkingLevel
-            : input.thinkingLevel;
+        const thinkingLevel = deps.env.modelLockEnabled
+          ? existing.thinkingLevel
+          : !hasModel
+            ? null
+            : input.thinkingLevel === undefined
+              ? modelChanged
+                ? null
+                : existing.thinkingLevel
+              : input.thinkingLevel;
         if (modelChanged) {
           await assertRoutineModel(deps, context.actor, { modelProvider, modelId }, codexCatalog);
         }

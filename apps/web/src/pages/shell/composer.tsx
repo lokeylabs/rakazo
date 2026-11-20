@@ -84,6 +84,7 @@ const ComposerBody = memo(function Composer({
   runErrorId,
   onRunErrorPresented,
   onDismissError,
+  modelLockEnabled = false,
   sending,
   fileInputRef,
   onAttachmentPick,
@@ -120,6 +121,7 @@ const ComposerBody = memo(function Composer({
   runErrorId: string | null;
   onRunErrorPresented: (runId: string) => void;
   onDismissError: () => void;
+  modelLockEnabled?: boolean;
   sending: boolean;
   fileInputRef: RefObject<HTMLInputElement | null>;
   onAttachmentPick: (files: FileList | readonly File[] | null) => boolean;
@@ -612,6 +614,7 @@ const ComposerBody = memo(function Composer({
         onOpenConnections={onOpenConnections}
         onOpenBilling={onOpenBilling}
         onDismissError={onDismissError}
+        modelLockEnabled={modelLockEnabled}
         textareaRef={textareaRef}
       />
       {replyTarget ? (

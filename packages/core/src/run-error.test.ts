@@ -149,18 +149,18 @@ describe("normalizeRunError", () => {
     ['404: {"message":"Route not found"}', "Your model provider can't run this model."],
     [
       "500: {malformed https://example.test/keys/fake-key-id",
-      "The model provider returned an error.",
+      "Something went wrong. Try again in a moment.",
     ],
-    ["Something unexpected happened", "The model provider returned an error."],
+    ["Something unexpected happened", "Something went wrong. Try again in a moment."],
     [
       "Provider diagnostic: manage https://example.test/keys/fake-key-id; trace fake-trace",
-      "The model provider returned an error.",
+      "Something went wrong. Try again in a moment.",
     ],
     [
       "OpenRouter key limit exceeded (weekly). Manage https://example.test/keys/fake-key-id",
       "Your OpenRouter key hit its weekly limit.",
     ],
-    ["", "The model provider returned an error."],
+    ["", "Something went wrong. Try again in a moment."],
     ["Internal server error", "Something went wrong. Try again."],
   ])("normalizes %s", (details, summary) => {
     expect(normalizeRunError(details)).toMatchObject({ summary, details });
@@ -441,7 +441,6 @@ describe("normalizeRunError", () => {
         summary: MODEL_OUTPUT_CUT_ERROR,
         details: MODEL_OUTPUT_CUT_ERROR,
         kind: "output",
-        recovery: "model",
       });
     });
 
@@ -458,8 +457,6 @@ describe("normalizeRunError", () => {
       "Provider stopped with: MALFORMED_FUNCTION_CALL",
       "Unhandled stop reason: MALFORMED_RESPONSE",
       "The model refused to complete the request",
-      "This request triggered restrictions on violative cyber content and was blocked under Anthropic's Usage Policy. To learn more, see the refusals guide.",
-      "This request was blocked as it seems to violate Anthropic's Terms of Service restrictions on reverse engineering or duplicating model outputs.",
       "Provider returned an empty response",
       'unexpected tokens remaining in message header: Some("to=functions.example")',
       'HarmonyError: unexpected tokens remaining in message header: Some("analysis")',
@@ -477,11 +474,24 @@ describe("normalizeRunError", () => {
       "Upstream error from Example: HttpError: HTTP 400: Tool calls cutoff by max_tokens.",
     ])("calls unusable model output what it is: %s", (details) => {
       expect(classify(details)).toEqual({
-        summary: "The model returned an unusable response. Try again.",
+        summary: "The response could not be completed. Try again.",
         details,
         kind: "output",
-        recovery: "model",
       });
+    });
+
+    it.each([
+      "SAFETY",
+      "PROHIBITED_CONTENT",
+      'litellm.APIError: APIError: OpenrouterException - Message: SAFETY, Metadata: {"error_type": "content_policy_violation"}',
+      '400: {"code":"data_inspection_failed","message":"Input text data may contain inappropriate content."}',
+      "This request triggered restrictions on violative cyber content and was blocked under Anthropic's Usage Policy. To learn more, see the refusals guide.",
+    ])("describes a content-policy block plainly: %s", (details) => {
+      expect(normalizeRunError(details)).toMatchObject({
+        summary: "This message was blocked. Try rephrasing your request.",
+        kind: "output",
+      });
+      expect(normalizeRunError(details).recovery).toBeUndefined();
     });
 
     it("shows an operator cap without suggesting buying credits or changing connections", () => {
@@ -730,7 +740,7 @@ it("does not expose malformed fallback metadata as user-facing copy", () => {
         backups: [{ status: "unknown" }],
       }),
     ).summary,
-  ).toBe("The model provider returned an error.");
+  ).toBe("Something went wrong. Try again in a moment.");
 });
 
 describe("userRunError", () => {

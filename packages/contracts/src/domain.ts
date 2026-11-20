@@ -1528,6 +1528,8 @@ export const MeSchema = z.object({
   needsSignupSurvey: z.boolean().optional(),
   /** The wallet bots can spend from, when this deployment offers one. Absent from older servers. */
   paymentWalletProvider: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
+  /** RAKAZO_MODEL_LOCK=1: one workspace model, no pickers. Absent from older servers. */
+  modelLockEnabled: z.boolean().optional(),
 });
 export type Me = z.infer<typeof MeSchema>;
 

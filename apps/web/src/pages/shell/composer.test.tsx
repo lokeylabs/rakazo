@@ -132,7 +132,7 @@ it("shows a readable run error with raw details, while preserving send errors", 
   );
   const details = error?.querySelector("details");
   expect(details?.open).toBe(false);
-  expect(details?.querySelector("summary")?.textContent).toBe("Details");
+  expect(details?.querySelector("summary")?.textContent).toBe("Technical details");
   act(() => details?.querySelector("summary")?.click());
   expect(details?.open).toBe(true);
   expect(details?.querySelector("pre")?.textContent).toBe(runError);

@@ -52,6 +52,7 @@ export function ShellSidePanel({
   setAgentSkills,
   onClearBot,
   discardChatAttachments,
+  modelLockEnabled = false,
 }: {
   rpc: ReturnType<typeof createSpaceRpc>;
   panel: Panel;
@@ -81,6 +82,7 @@ export function ShellSidePanel({
   onClearBot: (bot: Bot) => void;
   /** Drops a deleted chat's pending attachments with their previews. */
   discardChatAttachments: (threadKey: string) => void;
+  modelLockEnabled?: boolean;
 }) {
   const { t } = useLingui();
   const open = Boolean(panel && (active || activeGroup || panel === "import-agent"));
@@ -190,6 +192,7 @@ export function ShellSidePanel({
             <BotSettings
               key={active.id}
               bot={active}
+              modelLockEnabled={modelLockEnabled}
               tab={botTab}
               onTabChange={(tab: BotPanelTab) => {
                 setPanel(tab);

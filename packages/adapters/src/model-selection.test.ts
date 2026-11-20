@@ -1282,6 +1282,19 @@ describe("bot model change validation", () => {
     ).resolves.toEqual({ ok: true, provider: "xai", model: "saved-model", thinkingLevel: null });
   });
 
+  it("keeps the current model when model lock is on", async () => {
+    const deps = { ...changeDeps({}), modelLock: true };
+    await expect(
+      validateBotModelChange(deps, {
+        ...scope,
+        provider: "anthropic",
+        model: "claude-opus-4-6",
+        thinkingLevel: "high",
+        current: { provider: "xai", model: "grok-4.6" },
+      }),
+    ).resolves.toEqual({ ok: true, provider: "xai", model: "grok-4.6", thinkingLevel: null });
+  });
+
   it("rejects Spark on Codex, which Pi no longer bundles", async () => {
     const deps = changeDeps({ "openai-codex": credential("openai-codex", null) });
     const result = await validateBotModelChange(deps, {

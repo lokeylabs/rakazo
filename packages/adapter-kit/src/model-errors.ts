@@ -79,7 +79,7 @@ const EXHAUSTION_SIGNAL =
  * unauthorised, was cancelled, or the limit is a short rate window rather than the account.
  */
 const NOT_EXHAUSTION =
-  /not (?:yet )?(?:reached|hit)|unsupported parameter|invalid[ _](?:api[ _]key|parameter|param|input|argument|tool|schema|credential)|validation|must be|context[ _-](?:length|window)|too many tokens|model not found|bad request|unauthori[sz]ed|forbidden|access denied|permission (?:is )?(?:denied|refused|declined)|(?:expired|revoked|missing) (?:api )?(?:key|credential|token)|(?:api )?(?:key|credential|token) (?:expired|revoked|missing)|authentication (?:failed|failure|denied|expired|invalid)|abort|cancel|\bper[- ](?:second|minute)\b|\b(?:rpm|tpm)\b|concurrent/;
+  /not (?:yet )?(?:reached|hit)|unsupported parameter|invalid[ _](?:api[ _]key|parameter|param|input|argument|tool|schema|credential)|validation|must be|context[ _-](?:length|window)|too many tokens|model not found|bad request|unauthori[sz]ed|forbidden|access denied|permission (?:is )?(?:denied|refused|declined)|(?:expired|revoked|missing) (?:api )?(?:key|credential|token)|(?:api )?(?:key|credential|token) (?:expired|revoked|missing)|authentication (?:failed|failure|denied|expired|invalid)|abort|cancel|\bper[- ](?:second|minute)\b|\b(?:rpm|tpm)\b|concurrent|content[_ -]?policy|data_inspection_failed|prohibited_content|\bopenrouterexception\b.*\bsafety\b|\blitellm\b.*\bsafety\b/;
 
 /**
  * Providers report an exhausted account as 400, 402 or 403 depending on the vendor. A 4xx

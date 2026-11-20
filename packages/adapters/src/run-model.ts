@@ -73,6 +73,7 @@ export async function fleetPrepareDeps(
     prisma: deps.prisma,
     modelChange: {
       hostedProvider,
+      modelLock: deps.modelLockEnabled === true,
       secretStore: deps.secretStore,
       codexCatalog: deps.codexCatalog,
       refreshExpiredCredential: (credentialScope, secretId, provider) =>
